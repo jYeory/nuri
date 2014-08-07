@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.AttachmentDao">
+	
+	<select id="getAttachment" parameterType="java.util.HashMap" resultType="Attachment" flushCache="false" useCache="false">
+    SELECT   *
+        FROM nuri.attachment
+       WHERE 1=1
+         AND attach_doc_type = #{attachDocType}
+         AND attach_doc_key = #{attachDocKey}
+	</select>
+	
+	<select id="count-noticeList" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+    SELECT   COUNT(attach_seq)
+        FROM nuri.attachment
+       WHERE 1=1
+		<if test="attachDocType != null">
+         AND attach_doc_type = #{attachDocType}
+        </if>
+		<if test="attachDocKey != null">
+         AND attach_doc_key = #{attachDocKey}
+        </if>
+	</select>
+
+	<select id="attachList" parameterType="java.util.HashMap" resultType="Attachment" flushCache="true" useCache="false">
+    SELECT   *
+        FROM nuri.attachment
+       WHERE 1=1
+         AND attach_doc_type = #{attachDocType}
+         AND attach_doc_key = #{attachDocKey}
+	</select>
+	
+	<insert id="addAttachment" parameterType="Attachment" useGeneratedKeys="true" keyProperty="attachSeq">
+		INSERT INTO nuri.attachment
+			(attach_doc_type, attach_doc_key, filename, fake_name, file_size, create_date, content_type) 
+		VALUES 
+			(#{attachDocType}, #{attachDocKey}, #{filename}, #{fakeName}, #{fileSize}, now(), #{contentType})
+		
+		<!-- 
+		<selectKey resultType="String" keyProperty="noticeSeq" order="AFTER"> 
+		SELECT attach_seq FROM nuri.attachment ORDER BY attach_seq DESC
+		</selectKey> 
+		 -->
+	</insert>
+	
+	<delete id="deleteAttachment" parameterType="int">
+		DELETE 
+		  FROM nuri.attachment 
+		 WHERE attach_seq = #{attachSeq}
+	</delete>
+</mapper>

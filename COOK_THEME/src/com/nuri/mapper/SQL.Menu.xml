@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.MenuDao">
+	
+	<select id="getMenu" parameterType="java.util.HashMap" resultType="Menu" flushCache="false" useCache="false">
+		SELECT *
+		FROM nuri.menus
+		WHERE 1=1
+		<if test="menuId != null and menuId != ''">
+		AND menu_id = #{menuId}
+		</if>
+		<if test="prtMenuId != null and prtMenuId != ''">
+		AND prt_menu_id = #{prtMenuId}
+		</if>
+		ORDER BY menu_id, prt_menu_id
+	</select>
+	
+	<select id="getRootMenus" parameterType="java.util.HashMap" resultType="java.util.HashMap" flushCache="false" useCache="false">
+    SELECT   menu_seq, 
+             menu_id, 
+             menu_func, 
+             prt_menu_id, 
+             menu_name, 
+             menu_cls, 
+             menu_url, 
+             description, 
+             roles, 
+             ords, 
+             prt_menu_name, 
+             SUM(r.cnt) AS menu_cnt
+        FROM (SELECT   a.menu_seq, 
+                       a.menu_id, 
+                       a.menu_func, 
+                       a.prt_menu_id, 
+                       a.menu_name, 
+                       a.menu_cls, 
+                       a.menu_url, 
+                       a.description, 
+                       a.ords, 
+                       (SELECT GROUP_CONCAT(role_seq) FROM menu_roles mr WHERE mr.menu_id = a.menu_id) AS roles, 
+                       (SELECT m.menu_name FROM menus m WHERE m.menu_id = a.prt_menu_id) AS prt_menu_name,
+                       (SELECT count(m.menu_id) FROM menus m WHERE m.menu_id = b.prt_menu_id) AS cnt
+                  FROM menus a
+              LEFT OUTER JOIN menus b on a.menu_id = b.prt_menu_id
+              LEFT OUTER JOIN menu_roles c on a.menu_id = c.menu_id
+                 WHERE 1=1
+            <if test="prtMenuId != null and prtMenuId != ''">
+                   AND a.prt_menu_id = #{prtMenuId}
+            </if>
+            <if test="roleSeqs != null and roleSeqs != ''">
+                   AND c.role_seq IN 
+                  <foreach item="item" index="index" collection="roleSeqs" open="(" separator="," close=")">  
+                                        #{item:VARCHAR}
+                  </foreach>
+            </if>
+        ) r
+    GROUP BY menu_seq, menu_id, menu_func, prt_menu_id, menu_name, menu_cls, menu_url, description, roles, ords
+    ORDER BY prt_menu_name, IFNULL(ords, 99)
+	</select>
+	
+	<select id="getMenuInfo" parameterType="java.util.HashMap" resultType="java.util.HashMap" flushCache="false" useCache="false">
+    SELECT   menuSeq, 
+             menuId, 
+             menuFunc, 
+             prtMenuId, 
+             menuName, 
+             menuCls, 
+             menuUrl, 
+             description, 
+             GROUP_CONCAT(roles) AS roles,
+             GROUP_CONCAT(roleSeqs) AS roleSeqs,
+             ords, 
+             ifnull(prtMenuName, "ROOT") AS prtMenuName
+        FROM (SELECT   menu_seq AS menuSeq, 
+                       m.menu_id AS menuId, 
+                       menu_func AS menuFunc,
+                       prt_menu_id AS prtMenuId, 
+                       menu_name AS menuName, 
+                       menu_cls AS menuCls, 
+                       menu_url AS menuUrl, 
+                       description, 
+                       (SELECT role_name_kor FROM roles r WHERE r.role_seq = mr.role_seq) AS roles,
+                       (SELECT role_seq FROM roles r WHERE r.role_seq = mr.role_seq) AS roleSeqs,
+                       ords,
+                       (SELECT IFNULL(a.menu_name, 0) FROM menus a WHERE a.menu_id = m.prt_menu_id) AS prtMenuName
+                  FROM nuri.menus m,
+                       nuri.menu_roles mr
+                 WHERE 1=1
+                   AND m.menu_id = mr.menu_id
+            <if test="menuId != null and menuId != ''">
+                   AND m.menu_id = #{menuId}
+            </if>
+            <if test="prtMenuId != null and prtMenuId != ''">
+                   AND prt_menu_id = #{prtMenuId}
+            </if>
+        ) r
+	</select>
+	
+	<select id="isExits" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(menu_url)
+		FROM nuri.menus
+		WHERE 1=1
+		<if test='menuUrl != null and menuUrl != ""'>
+		AND menu_url = #{menuUrl}
+		</if>
+		AND disabled IS NULL
+	</select>
+	
+	<select id="getMenuId" parameterType="java.lang.String" resultType="java.lang.String" flushCache="false" useCache="false">
+		SELECT   menu_id
+		    FROM nuri.menus
+		   WHERE menu_seq = #{menuSeq}
+	</select>
+	
+	<insert id="addMenu" parameterType="Menu" useGeneratedKeys="true" keyProperty="menuSeq">
+		INSERT INTO nuri.menus 
+			(menu_seq, menu_id, menu_func, prt_menu_id, menu_name, menu_cls, menu_url, description, ords, create_by, create_date, update_by, update_date, disabled)
+		VALUES 
+			(nuri.fn_generate_seq('menus'), nuri.fn_generate_menu_id(#{prtMenuId}), #{menuFunc}, #{prtMenuId}, #{menuName}, #{menuCls}, #{menuUrl}, #{description}, #{ords}, #{createBy}, now(), #{updateBy}, #{updateDate}, #{disabled})
+		<selectKey resultType="String" keyProperty="menuSeq" order="AFTER"> 
+		SELECT fn_get_current_seq('menus')
+		</selectKey> 
+	</insert>
+	
+	<update id="updateMenu"  parameterType="Menu">
+        UPDATE nuri.menus 
+           SET menu_name = #{menuName},
+        <if test="menuCls != null and menuCls != ''">
+               menu_cls = #{menuCls},
+        </if>
+        <if test="menuFunc != null and menuFunc != ''">
+               menu_func = #{menuFunc},
+        </if>
+               menu_url= #{menuUrl},
+        <if test="description != null and description != ''">
+               description = #{description},
+        </if>
+        <if test="ords != null and ords != ''">
+               ords = #{ords},
+        </if>
+               update_by = #{updateBy},
+               update_date = now()
+         WHERE menu_seq = #{menuSeq}
+	</update>
+	
+	<update id="disableMenu" parameterType="int">
+		UPDATE nuri.menus 
+		   SET disabled = now()
+		 WHERE user_seq = #{userSeq}
+	</update>
+	
+	<delete id="deleteMenu" parameterType="int">
+		DELETE 
+		  FROM nuri.menus 
+		 WHERE menu_id = #{menuId}
+	</delete>
+	
+	<insert id="addMenuRole" parameterType="MenuRole" useGeneratedKeys="true" keyProperty="menuSeq">
+		INSERT INTO nuri.menu_roles 
+			(menu_id, role_seq, create_by, create_date)
+		VALUES 
+			(#{menuId}, #{roleSeq}, #{createBy}, now())
+	</insert>
+	
+	<delete id="deleteMenuRole" parameterType="int">
+		DELETE 
+		  FROM nuri.menu_roles 
+		 WHERE menu_id = #{menuId}
+	</delete>
+	
+	<select id="count-listMenu" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(menu_id)
+		  FROM nuri.menus
+		 WHERE 1=1
+		<if test="menuId != null and menuId != ''">
+		   AND menu_id = #{menuId}
+		</if>
+		<if test="prtMenuId != null and prtMenuId != ''">
+		   AND prt_menu_id = #{prtMenuId}
+		</if>
+		   AND disabled IS<if test='isDisable != null and isDisable != ""'> NOT </if>NULL
+	</select>
+
+	<select id="listMenu" parameterType="java.util.HashMap" resultType="Menu" flushCache="true" useCache="false">
+		SELECT *
+		  FROM nuri.menus
+		 WHERE 1=1
+		<if test="menuId != null and menuId != ''">
+		   AND menu_id = #{menuId}
+		</if>
+		<if test="prtMenuId != null and prtMenuId != ''">
+		   AND prt_menu_id = #{prtMenuId}
+		</if>
+		   AND disabled IS<if test='isDisable != null and isDisable != ""'> NOT </if>NULL
+		ORDER BY menu_id, prt_menu_id
+	</select>
+	
+</mapper>

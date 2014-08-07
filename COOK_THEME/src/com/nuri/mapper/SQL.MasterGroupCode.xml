@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.MasterGroupCodeDao">
+	
+	<select id="getMasterGroupCode" parameterType="string" resultType="MasterGroupCode" flushCache="false" useCache="false">
+		SELECT *
+		FROM nuri.master_group_codes
+		WHERE 1=1
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = #{grpSeq}
+		</if>
+		AND disabled IS <if test='isDisable != ""'> NOT </if> NULL
+	</select>
+	
+	<insert id="addGroupCode" parameterType="MasterGroupCode" useGeneratedKeys="true" keyProperty="grpSeq">
+		INSERT INTO nuri.master_group_codes (grp_seq, grp_name_kor, grp_name_eng, grp_description, create_by, create_date, update_by, update_date, disabled) 
+		VALUES (fn_generate_seq('master_group_codes'), #{grpNameKor}, #{grpNameEng}, #{grpDescription}, #{createBy}, now(), #{updateBy}, #{updateDate}, #{disabled});
+	</insert>
+	
+	<update id="updateGroupCode"  parameterType="MasterGroupCode">
+		UPDATE nuri.master_group_codes 
+		SET   grp_name_kor = #{grpNameKor}
+			, grp_name_eng = #{grpNameEng}
+			, grp_description = #{grpDescription}
+			, update_by = #{updateBy}
+			, update_date = now()
+			, disabled = #{disabled}
+		WHERE grp_seq = #{grpSeq}
+	</update>
+	
+	<update id="disabled" parameterType="string">
+		UPDATE nuri.master_group_codes 
+		SET disabled = now()
+		WHERE grp_seq = #{grpSeq}
+	</update>
+	
+	<select id="count-listMasterGroupCode" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(grp_seq)
+		FROM nuri.master_group_codes
+		WHERE 1=1
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grpSeq = #{grpSeq}
+		</if>
+		<if test='grpNameKor != null and grpNameKor != ""'>
+		AND grp_name_kor = #{grpNameKor}
+		</if>
+		<if test='grpNameEng != null and grpNameEng != ""'>
+		AND grp_name_eng = #{grpNameEng}
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+	</select>
+
+	<select id="listMasterGroupCode" parameterType="java.util.HashMap" resultType="java.util.HashMap" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT *
+		FROM nuri.master_group_codes
+		WHERE 1=1
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grpSeq = #{grpSeq}
+		</if>
+		<if test='grpNameKor != null and grpNameKor != ""'>
+		AND grp_name_kor = #{grpNameKor}
+		</if>
+		<if test='grpNameEng != null and grpNameEng != ""'>
+		AND grp_name_eng = #{grpNameEng}
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+		<if test="sort != null and dir != null">
+			ORDER BY ${sort} ${dir}  
+		</if>
+		<if test="start != null and limit != null">
+		LIMIT ${start}, ${limit}
+		</if>
+	</select>
+	
+	<select id="count-listMasterGroupCodeForTree" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(grp_seq)
+		FROM nuri.master_group_codes
+		WHERE 1=1
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = #{grpSeq}
+		</if>
+		<if test='grpNameKor != null and grpNameKor != ""'>
+		AND grp_name_kor = #{grpNameKor}
+		</if>
+		<if test='grpNameEng != null and grpNameEng != ""'>
+		AND grp_name_eng = #{grpNameEng}
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+	</select>
+
+	<select id="listMasterGroupCodeForTree" parameterType="java.util.HashMap" resultType="java.util.HashMap" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT  grp_seq as p_key, 
+				0 as s_key,
+				grp_name_kor as name_kor, 
+				grp_name_eng as name_eng, 
+				grp_description as description, 
+				(select nickname from users where user_seq = create_by) as create_by,
+				create_by as create_seq, 
+				create_date, 
+				(select nickname from users where user_seq = update_by) as update_by,
+				update_by as update_seq,
+				update_date, 
+				disabled
+		FROM nuri.master_group_codes
+		WHERE 1=1
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = #{grpSeq}
+		</if>
+		<if test='grpNameKor != null and grpNameKor != ""'>
+		AND grp_name_kor = #{grpNameKor}
+		</if>
+		<if test='grpNameEng != null and grpNameEng != ""'>
+		AND grp_name_eng = #{grpNameEng}
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+		<if test="sort != null and dir != null">
+			ORDER BY ${sort} ${dir}  
+		</if>
+		<if test="start != null and limit != null">
+		LIMIT ${start}, ${limit}
+		</if>
+	</select>
+	
+</mapper>

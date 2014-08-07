@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.RoleDao">
+	
+	<select id="getRole" parameterType="string" resultType="Role" flushCache="false" useCache="false">
+		SELECT *
+		FROM nuri.roles
+		WHERE role_seq = #{key}
+	</select>
+	
+	<select id="count-listRole" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(role_seq)
+		FROM nuri.roles
+		WHERE 1=1
+	</select>
+	
+	<select id="getRoles" parameterType="java.util.HashMap" resultType="Role" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT A.*
+		  FROM nuri.roles A
+		 WHERE 1=1
+		<if test='roleSeq != null and roleSeq != ""'>
+		   AND A.role_seq = '${roleSeq}'
+		</if>
+	</select>
+	
+	<select id="userRoles" parameterType="java.util.HashMap" resultType="Role" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT B.*
+		FROM nuri.user_roles A
+		INNER JOIN nuri.roles B on A.role_seq = B.role_seq
+		INNER JOIN nuri.users C on A.user_seq = C.user_Seq
+		WHERE 1=1
+		<if test='userSeq != null and userSeq != ""'>
+		AND	A.user_seq = '${userSeq}'
+		</if>
+	</select>
+	
+	<insert id="addRole" parameterType="Role" useGeneratedKeys="true" keyProperty="roleSeq">
+		/* [SQL.Role.xml > addRole] */
+		INSERT INTO nuri.roles
+			(role_seq, role_code, role_name_kor, role_name_eng, description, create_date, update_date, disabled) 
+		VALUES 
+			(nuri.fn_generate_seq('roles'), #{roleCode}, #{roleNameKor}, #{roleNameEng}, #{description}, now(), #{updateDate}, #{disabled})
+	
+		<selectKey resultType="String" keyProperty="userSeq" order="AFTER"> 
+		SELECT fn_get_current_seq('roles')
+		</selectKey> 
+	
+	</insert>
+	
+	<update id="updateRole"  parameterType="Role">
+		/* [SQL.Role.xml > updateRole] */
+		UPDATE nuri.roles 
+		   SET role_code = #{roleCode},
+		       role_name_kor = #{roleNameKor},
+		       role_name_eng = #{roleNameEng},
+		       description = #{description},
+		       update_date = now(),
+		       disabled = #{disabled}
+		 WHERE role_seq = #{roleSeq}
+	</update>
+	
+	<update id="disableRole"  parameterType="Role">
+		/* [SQL.Role.xml > disableRole] */
+		UPDATE nuri.roles 
+		   SET disabled = now()
+		 WHERE role_seq = #{roleSeq}
+	</update>
+	
+</mapper>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.NoticeDao">
+	
+	<select id="getNotice" parameterType="string" resultType="Notice" flushCache="false" useCache="false">
+    SELECT   notice_seq,
+             notice_type,
+             title,
+             contents,
+             read_cnt,
+             (SELECT COUNT(attach_seq)  FROM attachment ath WHERE ath.attach_doc_type = 'notice' AND ath.attach_doc_key =  #{key}) AS has_attach
+        FROM nuri.notices
+       WHERE notice_seq = #{key}
+	</select>
+	
+	<select id="count-noticeList" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+    SELECT   COUNT(notice_seq)
+        FROM nuri.notices a
+       WHERE 1=1
+         AND a.disabled IS NULL
+	</select>
+
+	<select id="noticeList" parameterType="java.util.HashMap" resultType="Notice" flushCache="true" useCache="false" statementType="STATEMENT">
+    SELECT   a.notice_seq, 
+             a.notice_type, 
+             a.title, 
+             a.contents,
+             (SELECT nickname FROM nuri.users u WHERE u.user_seq = a.create_by) AS create_by,
+             a.create_date,
+             (SELECT COUNT(attach_seq) FROM attachment ath WHERE ath.attach_doc_type = 'notice' AND ath.attach_doc_key = a.notice_seq) AS has_attach,
+             a.read_cnt
+        FROM nuri.notices a
+       WHERE 1=1
+         AND a.disabled IS NULL
+	</select>
+	
+	<insert id="addNotice" parameterType="Notice" useGeneratedKeys="true" keyProperty="noticeSeq">
+		INSERT INTO nuri.notices
+			(notice_seq, notice_type, title, contents, create_by, create_date, update_by, update_date, disabled) 
+		VALUES 
+			(nuri.fn_generate_seq('notices'), #{noticeType}, #{title}, #{contents}, #{createBy}, now(), #{updateBy}, #{updateDate}, #{disabled})
+	
+		<selectKey resultType="String" keyProperty="noticeSeq" order="AFTER"> 
+		SELECT fn_get_current_seq('notices')
+		</selectKey> 
+	
+	</insert>
+	
+	<update id="updateNotice" parameterType="Notice">
+        UPDATE nuri.notices 
+           SET title = #{title},
+               read_cnt = (#{readCnt} + 1) 
+        <if test="menuCls != null and menuCls != ''">
+               notice_type = #{menuCls},
+        </if>
+        <if test="contents != null and contents != ''">
+               contents = #{contents},
+        </if>
+        <if test="disabled != null and disabled == 'Y'">
+               disabled = now(),
+        </if>
+        <if test="disabled != null and disabled == 'N'">
+               disabled = null,
+        </if>
+               update_by = #{updateBy},
+               update_date = now()
+         WHERE notice_seq = #{noticeSeq}
+	</update>
+	
+	<delete id="deleteNotice" parameterType="java.lang.String">
+		DELETE 
+		  FROM nuri.notices 
+		 WHERE notice_seq = #{noticeSeq}
+	</delete>
+</mapper>

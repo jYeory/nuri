@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.UserDao">
+	
+	<select id="getUser" parameterType="java.util.HashMap" resultType="User" flushCache="false" useCache="false">
+		SELECT *
+		FROM nuri.users
+		WHERE 1=1
+		<if test="userSeq != null and userSeq != ''">
+		AND user_seq = #{userSeq}
+		</if>
+		<if test="userId != null and userId != ''">
+		AND user_id = #{userId}
+		</if>
+<!-- 		AND disabled IS <if test='isDisable != ""'> NOT </if> NULL -->
+	</select>
+	
+	<select id="isExits" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(user_id)
+		FROM nuri.users
+		WHERE 1=1
+		<if test='userId != null and userId != ""'>
+		AND user_id = #{userId}
+		</if>
+		<if test='nickname != null and nickname != ""'>
+		AND nickname = #{nickname}
+		</if>
+		AND disabled IS NULL
+	</select>
+	
+	<insert id="addUser" parameterType="User" useGeneratedKeys="true" keyProperty="userSeq">
+		INSERT INTO nuri.users 
+			(user_seq, user_type, user_id, passwd, user_name, nickname, contract1, contract2, authorize_code, authorize_date, has_notice, create_date, update_date, disabled) 
+		VALUES 
+			(nuri.fn_generate_seq('users'), #{userType}, #{userId}, #{passwd}, #{userName}, #{nickname}, #{contract1}, #{contract2}, #{authorized}, #{authorizedDate}, #{hasNotice}, now(), #{updateDate}, #{disabled})
+	
+		<selectKey resultType="String" keyProperty="userSeq" order="AFTER"> 
+		SELECT fn_get_current_seq('users')
+		</selectKey> 
+	
+	</insert>
+	
+	<insert id="addUserRole" parameterType="java.util.HashMap" flushCache="false" statementType="STATEMENT">
+		INSERT INTO nuri.user_roles 
+		(user_seq, role_seq) 
+		VALUES ('${userSeq}', '${roleSeq}')
+	</insert>
+	
+	<update id="updateUser"  parameterType="User">
+		UPDATE nuri.users 
+		SET   nickname = #{nickname}
+			, contract1 = #{contract1}
+			, contract2 = #{contract2}
+			, update_date = now()
+			, disabled = #{disabled}
+		WHERE user_seq = #{userSeq}
+	</update>
+	
+	<update id="disableUser" parameterType="int">
+		UPDATE nuri.users 
+		SET disabled = now()
+		WHERE user_seq = #{userSeq}
+	</update>
+	
+	<select id="count-listUser" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(user_id)
+		FROM nuri.users
+		WHERE 1=1
+		<if test='userSeq != null and userSeq != ""'>
+		AND	user_seq = #{id}
+		</if>
+		<if test='userId != null and userId != ""'>
+		AND	user_id = #{userId}
+		</if>
+		<if test='userName != null and userName != ""'>
+		AND	user_name = #{userName}
+		</if>
+		<if test='nickname != null and nickname != ""'>
+		AND	nickname = #{nickname}
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+	</select>
+
+	<select id="listUser" parameterType="java.util.HashMap" resultType="User" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT *
+		FROM nuri.users
+		WHERE 1=1
+		<if test='userSeq != null and userSeq != ""'>
+		AND	user_seq = #{id}
+		</if>
+		<if test='userId != null and userId != ""'>
+		AND	user_id = '${userId}'
+		</if>
+		<if test='userName != null and userName != ""'>
+		AND	user_name = '${userName}'
+		</if>
+		<if test='nickname != null and nickname != ""'>
+		AND	nickname = '${nickname}'
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+	</select>
+	
+</mapper>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<!DOCTYPE mapper
+PUBLIC "-//ibatis.apache.org//DTD Mapper 3.0//EN"
+"http://ibatis.apache.org/dtd/ibatis-3-mapper.dtd">
+<mapper namespace="com.nuri.dao.MasterCodeDao">
+	
+	<select id="getMasterCode" parameterType="string" resultType="MasterCode" flushCache="false" useCache="false">
+		SELECT *
+		FROM nuri.master_codes
+		WHERE 1=1
+		<if test='codeSeq != null and codeSeq != ""'>
+		AND code_Seq = #{codeSeq}
+		</if>
+		AND disabled IS <if test='isDisable != ""'> NOT </if> NULL
+	</select>
+	
+	<insert id="addMasterCode" parameterType="MasterCode" useGeneratedKeys="true" keyProperty="grpSeq">
+		INSERT INTO nuri.master_codes (code_seq, grp_seq, code_name_kor, code_name_eng, code_description, create_by, create_date, update_by, update_date, disabled) 
+		VALUES (fn_generate_seq('master_codes'), #{grpSeq}, #{codeNameKor}, #{codeNameEng}, #{codeDescription}, #{createBy}, now(), #{updateBy}, #{updateDate}, #{disabled});
+	</insert>
+	
+	<update id="updateMasterCode"  parameterType="MasterCode">
+		UPDATE nuri.master_codes 
+		SET   code_name_kor = #{codeNameKor}
+			, code_name_eng = #{codeNameEng}
+			, code_description = #{codeDescription}
+			, update_by = #{updateBy}
+			, update_date = now()
+		WHERE grp_seq = #{grpSeq} and code_seq = #{codeSeq}
+	</update>
+	
+	<update id="disabled" parameterType="java.util.HashMap">
+		UPDATE nuri.master_codes 
+		SET disabled = now()
+		WHERE 1=1
+		<if test='codeSeq != null and codeSeq != ""'>
+		AND code_seq = #{codeSeq}
+		</if>
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = '${grpSeq}'
+		</if>
+	</update>
+	
+	<select id="count-listMasterCode" parameterType="java.util.HashMap" resultType="int" flushCache="false" useCache="false">
+		SELECT COUNT(code_seq)
+		FROM nuri.master_codes
+		WHERE 1=1
+		<if test='codeSeq != null and codeSeq != ""'>
+		AND code_seq = '${codeSeq}'
+		</if>
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = '${grpSeq}'
+		</if>
+		<if test='codeNameKor != null and codeNameKor != ""'>
+		AND code_name_kor = '${codeNameKor}'
+		</if>
+		<if test='codeNameEng != null and codeNameEng != ""'>
+		AND code_name_eng = '${codeNameEng}'
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+	</select>
+
+	<select id="listMasterCode" parameterType="java.util.HashMap" resultType="java.util.HashMap" flushCache="true" useCache="false" statementType="STATEMENT">
+		SELECT  code_seq as p_key, 
+				grp_seq as s_key, 
+				code_name_kor as name_kor, 
+				code_name_eng as name_eng, 
+				code_description as description, 
+				(select nickname from users where user_seq = create_by) as create_by,
+				create_by as create_seq, 
+				create_date, 
+				(select nickname from users where user_seq = update_by) as update_by,
+				update_by as update_seq, 
+				update_date, 
+				disabled
+		FROM nuri.master_codes
+		WHERE 1=1
+		<if test='codeSeq != null and codeSeq != ""'>
+		AND code_seq = '${codeSeq}'
+		</if>
+		<if test='grpSeq != null and grpSeq != ""'>
+		AND grp_seq = '${grpSeq}'
+		</if>
+		<if test='codeNameKor != null and codeNameKor != ""'>
+		AND code_name_kor = '${codeNameKor}'
+		</if>
+		<if test='codeNameEng != null and codeNameEng != ""'>
+		AND code_name_eng = '${codeNameEng}'
+		</if>
+		AND disabled IS <if test='isDisable != null and isDisable != ""'> NOT </if> NULL
+		<if test="sort != null and dir != null">
+			ORDER BY ${sort} ${dir}  
+		</if>
+		<if test="start != null and limit != null">
+		LIMIT ${start}, ${limit}
+		</if>
+	</select>
+	
+</mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="GaonNuri Project" default="default" xmlns:artifact="antlib:org.apache.maven.artifact.ant">
+	<typedef resource="org/apache/maven/artifact/ant/antlib.xml" 
+			 uri="antlib:org.apache.maven.artifact.ant" 
+			 classpath="lib/maven-ant-tasks-2.1.3.jar" />
+	
+	<!-- ########################## basic properties ########################## -->
+	<property file="build.properties" />
+	<property name="main.project.src" location="${main.project.root}/src/"/>
+	<property name="main.project.res" location="${main.project.root}/src/resources"/>
+	<property name="main.project.dist" location="${main.project.root}/dist"/>
+	<property name="main.project.web" location="${main.project.root}/WebContent"/>
+	<property name="output" location="${main.project.root}/WEB-INF/classes"/>
+	<property name="deploy.output" location="${deploy.home}/WEB-INF/classes"/>
+	
+	<artifact:pom id="pom" file="${main.project.root}/pom.xml" />
+	<artifact:dependencies filesetId="pom.fileset" pathId="pom.classpath" pomRefId="pom" />
+	
+	<!-- ########################## SVN update ########################## -->
+	<target name="svn_update">
+		<exec dir="${main.project.root}" executable="svn" timeout="60000">
+			<arg value="up"/>
+		</exec>
+	</target>
+	
+	<!-- ########################## import-dependency ########################## -->
+	<!-- Maven lib 다운로드 후 복사 -->
+	<target name="import-dependency" description="copy dependency jar file to WEB-INF/lib">
+		<echo message="import-dependency > path : ${deploy.home}/WEB-INF/lib"/>
+		<copy todir="${deploy.home}/WEB-INF/lib">
+	    	<fileset refid="pom.fileset"/>
+	    	<mapper type="flatten" />
+	  	</copy>
+	</target>
+
+	<!-- ########################## creating output directory ########################## -->
+	<target name="createdir">
+		<mkdir dir="${output}"/>
+	</target>
+
+  	<!-- ########################## MAIN_PROJECT :: source compile ########################## -->
+	<target name="compile_mainprj" depends="createdir, import-dependency">
+		<echo message="main project source : ${main.project.src}"/>
+		<echo message="target destination  : ${output}"/>
+		<!-- 컴파일 -->
+		<javac srcdir="${main.project.src}" destdir="${output}" encoding="UTF-8" source="${javac.source}" debug="${javac.debug}">
+			<classpath refid="pom.classpath" />
+		</javac>
+		<!-- Mapper XML 복사 -->
+		<copy verbose="${copy.verbose}" todir="${output}">
+			<fileset dir="${main.project.src}">
+				<exclude name="**/*.java*" />
+				<include name="**/*.xml" />
+				<include name="**/*.class" />
+			</fileset>
+		</copy>
+	</target>
+
+  	<!-- ########################## MAIN_PROJECT :: resource copy ########################## -->
+	<target name="copyresource_mainprj" depends="createdir">
+		<echo message="copyresource_mainprj source directory : ${output}"/>
+		<echo message="copyresource_mainprj directory : ${deploy.output}"/>
+		<copy verbose="${copy.verbose}" todir="${deploy.output}">
+			<fileset dir="${output}">
+				<exclude name="**/*.java*" />
+				<exclude name="resources/*" />
+			</fileset>
+		</copy>
+	</target>
+
+  	<!-- ########################## MAIN_PROJECT :: copy to home(deploy) ########################## -->
+	<target name="copytohome" depends="copyto_settingfiles">
+		<echo message="copytohome source directory : ${main.project.root}"/>
+		<echo message="copytohome target directory : ${deploy.home}"/>
+		<copy verbose="${copy.verbose}" todir="${deploy.home}">
+			<fileset dir="${main.project.web}">
+				<exclude name="**/.svn" />
+				<exclude name="**/*.ini" />
+				<exclude name="**/*sessions.xml" />
+				<exclude name="**/log4j*.properties" />
+				<exclude name="**/ipfilter*.properties" />
+			</fileset>
+		</copy>
+	</target>
+	
+	<target name="copyto_settingfiles">
+		<echo message="copyto_settingfiles source directory : ${main.project.dist}/WEB-INF/classes"/>
+		<echo message="copyto_settingfiles target directory : ${deploy.output}"/>
+		<copy verbose="${copy.verbose}" todir="${deploy.output}" overwrite="true" >
+			<fileset dir="${main.project.dist}/WEB-INF/classes" >
+				<include name="**/*.ini" />
+				<include name="**/*Context*.xml" />
+				<include name="**/*dwr*.xml" />
+				<include name="**/Sql*.xml" />
+				<include name="**/log4j*.properties" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- ########################## clean sources ########################## -->
+	<target name="clean">
+		<echo message="clean target directory : ${output}"/>
+		<delete>
+			<fileset dir="${output}">
+				<exclude name="**/*.ini" />
+				<exclude name="**/log4j*.xml" />
+				<exclude name="**/*.properties" />
+			</fileset>
+		</delete>
+	</target>
+
+	<!-- ########################## clean home ########################## -->
+	<target name="clean_home">
+		<echo message="clean_home target directory : ${deploy.home}/WEB-INF/classes"/>
+		<delete>
+			<fileset dir="${deploy.home}/WEB-INF/classes">
+				<exclude name="**/*.ini" />
+				<exclude name="**/log4j*.xml" />
+				<exclude name="**/*.properties" />
+			</fileset>
+		</delete>
+	</target>
+	
+	<!-- ########################## clean  ########################## -->
+	<target name="full_clean">
+		<echo message="full_clean target directory : ${deploy.home}"/>
+		<delete dir="${deploy.home}/"> </delete>
+	</target>
+
+	<target name="default" depends="full_clean, update_and_deploy" />
+	<target name="update_and_deploy" depends="update, copytohome" />
+	<target name="update" depends="svn_update, update_main" />
+	<target name="update_main" depends="compile_mainprj, copyresource_mainprj" />
+
+</project>
